@@ -1,0 +1,558 @@
+<!doctype html>
+<html lang="es" data-theme="dark">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Qu-arto de pollo · Lluvia intensa en Piura con un modelo híbrido clásico-cuántico</title>
+<meta name="description" content="Demo interactiva: un modelo híbrido (CNN + circuito cuántico de 4 qubits) estima el riesgo de lluvia intensa en Piura a 2 horas con imágenes GOES-19. Simulador, resultados preliminares.">
+<meta name="color-scheme" content="dark light">
+<meta name="theme-color" content="#0A1224">
+<link rel="icon" href="assets/favicon.svg" type="image/svg+xml">
+
+<!-- Al compartir: cambia las URLs de og:image y og:url por la dirección pública (ver README). -->
+<meta property="og:type" content="website">
+<meta property="og:title" content="Qu-arto de pollo · Lluvia intensa en Piura con un modelo híbrido clásico-cuántico">
+<meta property="og:description" content="Prueba la demo: parches de satélite, un circuito de 4 qubits en tu navegador y la comparación honesta con un modelo clásico.">
+<meta property="og:image" content="assets/og.jpg">
+<meta property="og:image:type" content="image/jpeg">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:locale" content="es_PE">
+<meta name="twitter:card" content="summary_large_image">
+
+<link rel="stylesheet" href="css/styles.css">
+<noscript><style>.tools{display:none}.nav{display:flex;flex-wrap:wrap}</style></noscript>
+<script>
+  /* Tema e idioma antes de pintar, para evitar parpadeos. */
+  (function () {
+    try {
+      var t = localStorage.getItem("qp-theme");
+      if (t === "light" || t === "dark") document.documentElement.setAttribute("data-theme", t);
+    } catch (e) {}
+  })();
+</script>
+</head>
+<body>
+
+<!-- Iconos -->
+<svg width="0" height="0" style="position:absolute" aria-hidden="true" focusable="false">
+  <symbol id="i-sun" viewBox="0 0 24 24"><circle cx="12" cy="12" r="4.2" fill="none" stroke="currentColor" stroke-width="2"/><path d="M12 2.5v3M12 18.5v3M2.5 12h3M18.5 12h3M5.3 5.3l2.1 2.1M16.6 16.6l2.1 2.1M18.7 5.3l-2.1 2.1M7.4 16.6l-2.1 2.1" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></symbol>
+  <symbol id="i-moon" viewBox="0 0 24 24"><path d="M20 14.5A8.5 8.5 0 0 1 9.5 4 8.5 8.5 0 1 0 20 14.5z" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/></symbol>
+  <symbol id="i-menu" viewBox="0 0 24 24"><path d="M4 7h16M4 12h16M4 17h16" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></symbol>
+  <symbol id="i-close" viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></symbol>
+  <symbol id="i-copy" viewBox="0 0 24 24"><rect x="8.5" y="8.5" width="11" height="11" rx="2" fill="none" stroke="currentColor" stroke-width="2"/><path d="M15.5 8.5V6a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v7.5a2 2 0 0 0 2 2h2.5" fill="none" stroke="currentColor" stroke-width="2"/></symbol>
+  <symbol id="i-check" viewBox="0 0 24 24"><path d="M5 12.5l4.5 4.5L19 7.5" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+  <symbol id="i-cross" viewBox="0 0 24 24"><path d="M6.5 6.5l11 11M17.5 6.5l-11 11" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"/></symbol>
+  <symbol id="i-play" viewBox="0 0 24 24"><path d="M7 4.5v15l12-7.5z" fill="currentColor"/></symbol>
+  <symbol id="i-ext" viewBox="0 0 24 24"><path d="M14 4h6v6M20 4l-9 9M18 14v5a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V7a1 1 0 0 1 1-1h5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+</svg>
+
+<a class="skip" href="#main" data-i18n="ui.skip">Saltar al contenido</a>
+
+<header class="top" id="top">
+  <div class="banner" id="banner" role="note">
+    <span class="banner-mark" aria-hidden="true"></span>
+    <strong data-i18n="ui.banner">DATOS SINTÉTICOS DE PRUEBA, NO SON RESULTADOS REALES</strong>
+  </div>
+  <div class="hdr">
+    <div class="wrap hdr-in">
+      <a class="brand" href="#inicio" aria-label="Qu-arto de pollo — inicio" data-i18n-attr="aria-label=nav.home">
+        <svg class="brand-mark" viewBox="0 0 28 28" aria-hidden="true">
+          <rect x="1.5" y="1.5" width="11" height="11" rx="2" fill="#2A1A55"/><rect x="15.5" y="1.5" width="11" height="11" rx="2" fill="#932667"/>
+          <rect x="1.5" y="15.5" width="11" height="11" rx="2" fill="#F37819"/><rect x="15.5" y="15.5" width="11" height="11" rx="2" fill="#FCFFA4"/>
+          <circle cx="14" cy="14" r="4.2" fill="#0A1224" stroke="#3DD9F5" stroke-width="2"/>
+        </svg>
+        <span class="brand-name" data-cfg="team">Qu-arto de pollo</span>
+      </a>
+      <nav id="nav" class="nav" aria-label="Secciones" data-i18n-attr="aria-label=nav.label">
+        <a href="#problema" data-i18n="nav.problema">Problema</a>
+        <a href="#datos" data-i18n="nav.datos">Datos</a>
+        <a href="#modelo" data-i18n="nav.modelo">Modelo</a>
+        <a href="#laboratorio" data-i18n="nav.laboratorio">Laboratorio</a>
+        <a href="#resultados" data-i18n="nav.resultados">Resultados</a>
+        <a href="#limites" data-i18n="nav.limites">Límites</a>
+        <a href="#reproducir" data-i18n="nav.reproducir">Reproducir</a>
+        <a href="#equipo" data-i18n="nav.equipo">Equipo</a>
+      </nav>
+      <div class="tools">
+        <button type="button" class="tool" id="btn-lang" aria-label="EN: Switch to English" lang="en"><span id="lang-txt">EN</span></button>
+        <button type="button" class="tool" id="btn-theme" aria-label="Cambiar a tema claro"><svg class="ico" aria-hidden="true"><use href="#i-sun"/></svg></button>
+        <button type="button" class="tool menu-btn" id="btn-menu" aria-expanded="false" aria-controls="nav" aria-label="Abrir menú" data-i18n-attr="aria-label=ui.menu"><svg class="ico" aria-hidden="true"><use href="#i-menu"/></svg></button>
+      </div>
+    </div>
+  </div>
+</header>
+
+<noscript>
+  <div class="wrap noscript">
+    <h2>Qu-arto de pollo · Riesgo de lluvia intensa en Piura a 2 horas</h2>
+    <p><strong>Esta demo interactiva necesita JavaScript.</strong> Resumen sin él:</p>
+    <ul>
+      <li><strong>Problema:</strong> anticipar lluvias intensas en el Bajo y Medio Piura (Perú) con unas horas de margen.</li>
+      <li><strong>Qué hicimos:</strong> un modelo híbrido (CNN + circuito cuántico de 4 qubits, PyTorch + Qiskit) que lee imágenes infrarrojas del satélite GOES-19 y estima el riesgo de lluvia intensa en las próximas 2 horas, y lo comparamos con la misma CNN con cabeza clásica.</li>
+      <li><strong>Qué encontramos:</strong> corre en simulador sin ruido, no en hardware cuántico; los resultados con datos reales son preliminares. Con JavaScript activado verás las cifras y si los datos son sintéticos.</li>
+      <li><strong>Qué sigue:</strong> hardware real (Qiskit Runtime), ruido, más temporadas de lluvia y separar entrenamiento y prueba por día.</li>
+    </ul>
+    <p>Reproducir: <code>python goes_sierra_lima.py --inicio AAAA-MM-DD --fin AAAA-MM-DD --salida dataset.csv</code> y luego <code>python qsvc_lluvias.py --csv dataset.csv</code>.</p>
+  </div>
+</noscript>
+
+<main id="main">
+
+<!-- ============================ PORTADA ============================ -->
+<section id="inicio" class="hero" aria-labelledby="h-hero">
+  <canvas id="ir-field" class="ir-field" aria-hidden="true"></canvas>
+  <div class="wrap hero-in">
+    <ul class="tags" aria-label="Hechos clave" data-i18n-attr="aria-label=hero.tagsLabel">
+      <li data-i18n="hero.tag1">GOES-19 + IMERG</li>
+      <li class="q" data-i18n="hero.tag2">CNN + circuito de 4 qubits</li>
+      <li data-i18n="hero.tag3">Simulador · resultados preliminares</li>
+    </ul>
+    <h1 id="h-hero" data-i18n="hero.h1">Riesgo de lluvia intensa en Piura a 2 horas, estimado desde satélite con una red clásico-cuántica</h1>
+    <p class="sub" data-i18n="hero.sub">Evaluamos si una capa cuántica aporta algo frente a una cabeza clásica del mismo tamaño.</p>
+    <div class="cta">
+      <a class="btn btn-primary" href="#laboratorio" data-i18n="hero.demo">Probar la demo</a>
+      <a class="btn btn-ghost" id="cta-repo" href="#reproducir" data-i18n="hero.code">Ver el código</a>
+    </div>
+    <p class="event"><span data-cfg="event">IBM Quantum Hackathon 2026 · Lima</span></p>
+  </div>
+</section>
+
+<!-- ============================ EN 30 SEGUNDOS ============================ -->
+<section id="resumen" class="sec sec-tight" aria-labelledby="h-sum">
+  <div class="wrap">
+    <h2 id="h-sum" data-i18n="sum.h2">En 30 segundos</h2>
+    <dl class="quick">
+      <div><dt data-i18n="sum.k1">El problema</dt><dd data-i18n="sum.v1">Anticipar lluvias intensas en el Bajo y Medio Piura con un par de horas de margen.</dd></div>
+      <div><dt data-i18n="sum.k2">Qué hicimos</dt><dd data-i18n="sum.v2">Un modelo híbrido (CNN + circuito de 4 qubits) lee imágenes infrarrojas de GOES-19 y estima el riesgo en parches de ~32 km.</dd></div>
+      <div><dt data-i18n="sum.k3">Qué encontramos</dt><dd id="sum-found">—</dd></div>
+      <div><dt data-i18n="sum.k4">Qué sigue</dt><dd data-i18n="sum.v4">Probar en hardware cuántico real, con ruido, y con más temporadas de lluvia.</dd></div>
+    </dl>
+    <div id="criteria" class="criteria" hidden>
+      <p class="criteria-t" data-i18n="sum.criteria">Dónde ver cada criterio</p>
+      <ul id="criteria-list"></ul>
+    </div>
+  </div>
+</section>
+
+<!-- ============================ PROBLEMA ============================ -->
+<section id="problema" class="sec" aria-labelledby="h-prob">
+  <div class="wrap split">
+    <div class="prob-copy">
+      <h2 id="h-prob" data-i18n="prob.h2">Por qué anticipar la lluvia en Piura</h2>
+      <p data-i18n="prob.p1">En la temporada de verano, y sobre todo con El Niño costero, la lluvia en Piura puede volverse intensa en pocas horas. Anticiparla, aunque sea con dos horas, da margen para prepararse.</p>
+      <p class="note" data-i18n="prob.p2">El satélite mira desde arriba: cuanto más frío el tope de una nube, más alta es, y las nubes muy altas suelen traer lluvia fuerte.</p>
+    </div>
+    <figure class="viz">
+      <svg id="svg-prob" viewBox="0 0 520 360" role="img" aria-labelledby="prob-cap" class="svg-prob">
+        <defs>
+          <linearGradient id="gcold" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0" stop-color="#FCFFA4"/><stop offset=".35" stop-color="#FCA50A"/><stop offset=".7" stop-color="#DD513A"/><stop offset="1" stop-color="#932667"/>
+          </linearGradient>
+        </defs>
+        <!-- satélite -->
+        <g transform="translate(260 30)">
+          <rect x="-14" y="-10" width="28" height="20" rx="3" class="s-sat"/>
+          <rect x="-58" y="-6" width="38" height="12" rx="2" class="s-sat"/><rect x="20" y="-6" width="38" height="12" rx="2" class="s-sat"/>
+        </g>
+        <text x="260" y="66" text-anchor="middle" class="s-t" data-i18n="prob.sat">Satélite (infrarrojo)</text>
+        <path d="M255 76 L205 100 M265 76 L345 224" class="s-beam"/>
+        <!-- nube alta -->
+        <g>
+          <path d="M120 262 C100 262 96 238 116 232 C114 214 138 206 150 220 C158 196 190 198 196 222 C214 218 222 242 208 262 Z" class="s-cl-hi"/>
+          <rect x="140" y="230" width="48" height="30" fill="url(#gcold)" opacity=".0"/>
+        </g>
+        <path d="M126 262 L126 214 C126 190 134 170 150 156 C164 144 172 130 172 112 C172 96 184 84 198 90 C210 96 214 110 210 124 C208 140 214 150 224 160 C238 172 244 192 244 214 L244 262 Z" fill="url(#gcold)" opacity=".95"/>
+        <text x="108" y="104" text-anchor="middle" class="s-lab" data-i18n="prob.cold">tope frío</text><path d="M148 100 L176 106" class="s-leader"/>
+        <!-- nube baja -->
+        <path d="M320 262 C302 262 298 244 314 240 C312 226 332 220 342 230 C350 216 374 218 378 234 C392 236 398 254 386 262 Z" fill="#932667" opacity=".55"/>
+        <text x="350" y="206" text-anchor="middle" class="s-lab" data-i18n="prob.warm">tope tibio</text>
+        <!-- lluvia -->
+        <g class="s-rain"><path d="M138 270 l-6 20 M156 270 l-6 20 M174 270 l-6 20 M192 270 l-6 20 M210 270 l-6 20 M228 270 l-6 20 M144 296 l-6 20 M162 296 l-6 20 M180 296 l-6 20 M198 296 l-6 20 M216 296 l-6 20"/></g>
+        <line x1="40" y1="262" x2="480" y2="262" class="s-ground"/>
+        <text x="190" y="340" text-anchor="middle" class="s-lab" data-i18n="prob.rainy">lluvia fuerte</text>
+        <text x="350" y="300" text-anchor="middle" class="s-lab" data-i18n="prob.calm">poca o ninguna</text>
+      </svg>
+      <figcaption id="prob-cap" data-i18n="prob.cap">Esquema: el satélite mide qué tan frío está el tope de las nubes. Más frío significa más altura, y más altura suele ir con lluvia más fuerte.</figcaption>
+    </figure>
+  </div>
+</section>
+
+<!-- ============================ DATOS ============================ -->
+<section id="datos" class="sec alt" aria-labelledby="h-datos">
+  <div class="wrap">
+    <h2 id="h-datos" data-i18n="datos.h2">Los datos: 16 parches sobre el Bajo y Medio Piura</h2>
+    <div class="datos-grid">
+      <div class="map-col">
+        <div id="map-wrap" class="map-wrap"><p class="loading" data-i18n="ui.loading">Cargando…</p></div>
+        <div class="map-tools">
+          <button type="button" class="chip-btn" id="map-all" aria-pressed="false" data-i18n="datos.showAll">Ver imágenes en todas las celdas</button>
+          <p class="hint" id="map-hint" data-i18n="datos.hint">Pasa el cursor o toca un parche para ver su imagen.</p>
+        </div>
+      </div>
+      <div class="side-col">
+        <div class="peek panel" id="peek" aria-live="polite">
+          <p class="peek-t" id="peek-title">—</p>
+          <div class="peek-imgs">
+            <figure><canvas id="pk-bt" width="16" height="16" class="px" role="img" aria-label="Canal 1"></canvas><figcaption data-i18n="datos.ch1s">Canal 1 · frío de la nube</figcaption></figure>
+            <figure><canvas id="pk-dbt" width="16" height="16" class="px" role="img" aria-label="Canal 2"></canvas><figcaption data-i18n="datos.ch2s">Canal 2 · enfriamiento</figcaption></figure>
+          </div>
+          <p class="peek-meta mono" id="peek-meta">—</p>
+        </div>
+        <ul class="explain">
+          <li><strong data-i18n="datos.c1t">Canal 1:</strong> <span data-i18n="datos.c1">temperatura de brillo infrarroja, banda 13 (10.3 µm): qué tan frío es el tope de las nubes.</span></li>
+          <li><strong data-i18n="datos.c2t">Canal 2:</strong> <span data-i18n="datos.c2">cuánto se enfrió respecto a hace 30 min.</span></li>
+          <li><strong data-i18n="datos.lt">Etiqueta:</strong> <span data-i18n="datos.l">1 si IMERG registra 5 mm/h o más en algún píxel del parche.</span></li>
+        </ul>
+        <details class="more">
+          <summary data-i18n="datos.moreS">Detalles de los datos</summary>
+          <p data-i18n="datos.more">Cada parche es de 16×16 píxeles (unos 32 km por lado). La región va de −5.8 a −4.6 de latitud y de −81.2 a −79.8 de longitud. Analizamos de 13:00 a 22:00, hora de Perú. La etiqueta usa NASA GPM IMERG (0.1°, cada 30 min), promediando las 2 horas siguientes: es 1 si algún píxel del parche llega a 5 mm/h o más; si no, 0. Los canales de arriba son los dos que recibe el modelo.</p>
+        </details>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============================ MODELO ============================ -->
+<section id="modelo" class="sec" aria-labelledby="h-mod">
+  <div class="wrap">
+    <h2 id="h-mod" data-i18n="mod.h2">El modelo, bloque por bloque</h2>
+    <p class="lede" data-i18n="mod.lede">Toca un bloque: primero lo explicamos en simple y luego en técnico.</p>
+    <div class="pipe" id="pipe">
+      <!-- 1 -->
+      <button type="button" class="blk" id="b1" aria-expanded="true" aria-controls="d1">
+        <svg class="blk-ico" viewBox="0 0 48 48" aria-hidden="true"><rect x="6" y="6" width="36" height="36" rx="3" fill="none" stroke="currentColor" stroke-width="2"/><path d="M18 6v36M30 6v36M6 18h36M6 30h36" stroke="currentColor" stroke-width="1.5" opacity=".6"/><rect x="18" y="18" width="12" height="12" fill="#F37819"/></svg>
+        <span class="blk-t" data-i18n="mod.b1">Parche de satélite</span>
+        <span class="blk-s mono">2×16×16</span>
+      </button>
+      <div class="dtl" id="d1" role="region" aria-labelledby="b1">
+        <p><strong data-i18n="mod.simple">En simple</strong> <span data-i18n="mod.d1s">Una foto infrarroja de unos 32 km de lado, con dos capas: qué tan fría está la nube y cuánto se enfrió en media hora.</span></p>
+        <p><strong data-i18n="mod.tech">En técnico</strong> <span data-i18n="mod.d1t">Entrada de 2 canales: <button type="button" class="term" data-term="bt">temperatura de brillo</button> de la banda 13 (10.3 µm) y su cambio respecto a hace 30 min.</span></p>
+      </div>
+      <!-- 2 -->
+      <button type="button" class="blk" id="b2" aria-expanded="false" aria-controls="d2">
+        <svg class="blk-ico" viewBox="0 0 48 48" aria-hidden="true"><rect x="5" y="14" width="22" height="22" rx="2" fill="none" stroke="currentColor" stroke-width="2"/><rect x="13" y="8" width="22" height="22" rx="2" fill="none" stroke="currentColor" stroke-width="2" opacity=".7"/><rect x="21" y="2" width="22" height="22" rx="2" fill="none" stroke="currentColor" stroke-width="2" opacity=".45"/></svg>
+        <span class="blk-t" data-i18n="mod.b2">CNN pequeña</span>
+        <span class="blk-s mono">conv 3×3 ×2</span>
+      </button>
+      <div class="dtl" id="d2" role="region" aria-labelledby="b2" hidden>
+        <p><strong data-i18n="mod.simple">En simple</strong> <span data-i18n="mod.d2s">Una red que busca formas en la imagen, como núcleos muy fríos o bordes de nube, y las resume en solo cuatro números.</span></p>
+        <p><strong data-i18n="mod.tech">En técnico</strong> <span data-i18n="mod.d2t">2 convoluciones 3×3 (8 y 16 filtros), maxpool y una capa lineal que produce 4 números.</span></p>
+      </div>
+      <!-- 3 -->
+      <button type="button" class="blk" id="b3" aria-expanded="false" aria-controls="d3">
+        <svg class="blk-ico" viewBox="0 0 48 48" aria-hidden="true"><path d="M8 36a16 16 0 0 1 32 0" fill="none" stroke="currentColor" stroke-width="2"/><path d="M24 36L34 20" stroke="#F37819" stroke-width="3" stroke-linecap="round"/><circle cx="24" cy="36" r="3" fill="currentColor"/></svg>
+        <span class="blk-t" data-i18n="mod.b3">Cuatro ángulos</span>
+        <span class="blk-s mono">tanh·π/2</span>
+      </button>
+      <div class="dtl" id="d3" role="region" aria-labelledby="b3" hidden>
+        <p><strong data-i18n="mod.simple">En simple</strong> <span data-i18n="mod.d3s">Cada número se convierte en un ángulo entre −90° y 90°, que es lo que el circuito cuántico sabe leer.</span></p>
+        <p><strong data-i18n="mod.tech">En técnico</strong> <span data-i18n="mod.d3t">x<sub>i</sub> = tanh(a<sub>i</sub>)·π/2, así que cada ángulo queda en (−π/2, π/2).</span></p>
+      </div>
+      <!-- 4 -->
+      <button type="button" class="blk q" id="b4" aria-expanded="false" aria-controls="d4">
+        <svg class="blk-ico" viewBox="0 0 48 48" aria-hidden="true"><path d="M4 12h40M4 24h40M4 36h40" stroke="currentColor" stroke-width="1.6"/><rect x="9" y="7" width="9" height="10" rx="1.5" fill="currentColor"/><rect x="9" y="19" width="9" height="10" rx="1.5" fill="currentColor"/><rect x="9" y="31" width="9" height="10" rx="1.5" fill="currentColor"/><path d="M30 12v12" stroke="currentColor" stroke-width="2"/><circle cx="30" cy="12" r="2.6" fill="currentColor"/><circle cx="30" cy="24" r="4" fill="none" stroke="currentColor" stroke-width="2"/></svg>
+        <span class="blk-t" data-i18n="mod.b4">Circuito de 4 qubits</span>
+        <span class="blk-s mono" data-i18n="mod.s4">12 pesos</span>
+      </button>
+      <div class="dtl" id="d4" role="region" aria-labelledby="b4" hidden>
+        <p><strong data-i18n="mod.simple">En simple</strong> <span data-i18n="mod.d4s">Cada ángulo gira un <button type="button" class="term" data-term="qubit">qubit</button>. Luego los qubits se enlazan entre sí y se giran de nuevo con 12 perillas que el entrenamiento ajusta.</span></p>
+        <p><strong data-i18n="mod.tech">En técnico</strong> <span data-i18n="mod.d4t">Una rotación <button type="button" class="term" data-term="ry">RY</button>(x<sub>i</sub>) por qubit y luego RealAmplitudes con 2 repeticiones y entrelazamiento lineal: 3 capas de 4 RY y 2 cadenas de <button type="button" class="term" data-term="cnot">CNOT</button> (0-1, 1-2, 2-3). 12 pesos entrenables.</span></p>
+      </div>
+      <!-- 5 -->
+      <button type="button" class="blk q" id="b5" aria-expanded="false" aria-controls="d5">
+        <svg class="blk-ico" viewBox="0 0 48 48" aria-hidden="true"><path d="M6 34a18 18 0 0 1 36 0" fill="none" stroke="currentColor" stroke-width="2"/><path d="M24 34L16 18" stroke="currentColor" stroke-width="3" stroke-linecap="round"/><circle cx="24" cy="34" r="3" fill="currentColor"/><path d="M6 40h36" stroke="currentColor" stroke-width="1.5" opacity=".6"/></svg>
+        <span class="blk-t" data-i18n="mod.b5">Medición y promedio</span>
+        <span class="blk-s mono">&lt;Z&gt; −1 … 1</span>
+      </button>
+      <div class="dtl" id="d5" role="region" aria-labelledby="b5" hidden>
+        <p><strong data-i18n="mod.simple">En simple</strong> <span data-i18n="mod.d5s">Se mira cada qubit y se anota un valor entre −1 y 1. Después se promedian los cuatro.</span></p>
+        <p><strong data-i18n="mod.tech">En técnico</strong> <span data-i18n="mod.d5t">Valor esperado <button type="button" class="term" data-term="z">&lt;Z&gt;</button> en cada qubit, promediado. El resultado cae entre −1 y 1.</span></p>
+      </div>
+      <!-- 6 -->
+      <button type="button" class="blk" id="b6" aria-expanded="false" aria-controls="d6">
+        <svg class="blk-ico" viewBox="0 0 48 48" aria-hidden="true"><rect x="6" y="30" width="8" height="12" fill="currentColor" opacity=".4"/><rect x="18" y="22" width="8" height="20" fill="currentColor" opacity=".7"/><rect x="30" y="10" width="8" height="32" fill="#F37819"/></svg>
+        <span class="blk-t" data-i18n="mod.b6">Riesgo</span>
+        <span class="blk-s mono" data-i18n="mod.s6">lineal · 0 a 1</span>
+      </button>
+      <div class="dtl" id="d6" role="region" aria-labelledby="b6" hidden>
+        <p><strong data-i18n="mod.simple">En simple</strong> <span data-i18n="mod.d6s">Un último ajuste convierte el promedio en un número de riesgo para ese parche. Si pasa un umbral, decimos «lluvia intensa».</span></p>
+        <p><strong data-i18n="mod.tech">En técnico</strong> <span data-i18n="mod.d6t">Capa lineal sobre el promedio de &lt;Z&gt;. El <button type="button" class="term" data-term="umbral">umbral</button> se elige en validación.</span></p>
+      </div>
+    </div>
+    <p class="alt-head" id="alt-head"></p>
+  </div>
+</section>
+
+<!-- ============================ LABORATORIO ============================ -->
+<section id="laboratorio" class="sec alt lab" aria-labelledby="h-lab">
+  <div class="wrap">
+    <h2 id="h-lab" data-i18n="lab.h2">Laboratorio</h2>
+    <p class="lede" data-i18n="lab.lede">Todo corre en tu navegador, con datos precalculados y un simulador cuántico propio.</p>
+
+    <aside class="guide" id="guide" aria-labelledby="guide-t">
+      <div class="guide-h"><h3 id="guide-t" data-i18n="lab.guideT">Guía de 3 pasos</h3>
+        <button type="button" class="icon-btn" id="guide-close" aria-label="Cerrar guía" data-i18n-attr="aria-label=lab.guideClose"><svg class="ico" aria-hidden="true"><use href="#i-close"/></svg></button></div>
+      <ol>
+        <li data-i18n="lab.g1">Elige un parche de ejemplo.</li>
+        <li data-i18n="lab.g2">Pulsa «Correr modelo» y mira el recorrido.</li>
+        <li data-i18n="lab.g3">Baja al circuito, carga sus ángulos y muévelos.</li>
+      </ol>
+    </aside>
+    <button type="button" class="chip-btn" id="guide-open" hidden data-i18n="lab.guideOpen">Mostrar la guía</button>
+
+    <p class="loading" id="lab-loading" data-i18n="ui.loading">Cargando…</p>
+    <p class="err" id="lab-error" hidden></p>
+
+    <!-- A. Explorador -->
+    <div class="panel lab-a" id="lab-a" aria-labelledby="lab-a-t" hidden>
+      <h3 id="lab-a-t" data-i18n="lab.aT">Explorador de parches</h3>
+      <fieldset class="picker">
+        <legend data-i18n="lab.pick">Parche de ejemplo</legend>
+        <div id="patch-list" class="patch-list"></div>
+      </fieldset>
+      <div class="lab-a-grid">
+        <figure class="heat">
+          <div class="frame"><canvas id="cv-bt" width="16" height="16" class="px" role="img" aria-label="Canal 1"></canvas></div>
+          <figcaption><strong data-i18n="lab.ch1">Canal 1 · temperatura de brillo</strong></figcaption>
+          <div class="cbar"><span class="cbar-l mono" id="cb-bt-l">—</span><span class="cbar-g" id="cb-bt-g" aria-hidden="true"></span><span class="cbar-r mono" id="cb-bt-r">—</span></div>
+          <p class="cbar-n" data-i18n="lab.ch1n">más brillante = más frío</p>
+          <p class="readout mono" id="ro-bt" aria-live="off">&nbsp;</p>
+        </figure>
+        <figure class="heat">
+          <div class="frame"><canvas id="cv-dbt" width="16" height="16" class="px" role="img" aria-label="Canal 2"></canvas></div>
+          <figcaption><strong data-i18n="lab.ch2">Canal 2 · enfriamiento en 30 min</strong></figcaption>
+          <div class="cbar"><span class="cbar-l mono" id="cb-dbt-l">—</span><span class="cbar-g" id="cb-dbt-g" aria-hidden="true"></span><span class="cbar-r mono" id="cb-dbt-r">—</span></div>
+          <p class="cbar-n" data-i18n="lab.ch2n">más brillante = se enfrió más</p>
+          <p class="readout mono" id="ro-dbt" aria-live="off">&nbsp;</p>
+        </figure>
+        <div class="outputs">
+          <div class="risk" id="risk-c"></div>
+          <div class="risk" id="risk-h"></div>
+          <p class="truth" id="truth">—</p>
+          <button type="button" class="btn btn-primary" id="run"><svg class="ico" aria-hidden="true"><use href="#i-play"/></svg> <span data-i18n="lab.run">Correr modelo</span></button>
+        </div>
+      </div>
+      <ol class="stages" id="stages" aria-label="Recorrido del modelo para el parche elegido" data-i18n-attr="aria-label=lab.stagesLabel">
+        <li data-st="patch"><span class="st-t" data-i18n="lab.s1">Parche</span><span class="st-v mono">—</span></li>
+        <li data-st="cnn"><span class="st-t" data-i18n="lab.s2">CNN: 4 números</span><span class="st-v mono">—</span></li>
+        <li data-st="ang"><span class="st-t" data-i18n="lab.s3">Ángulos</span><span class="st-v mono">—</span></li>
+        <li data-st="qc" class="q"><span class="st-t" data-i18n="lab.s4">Circuito: &lt;Z&gt; por qubit</span><span class="st-v mono">—</span></li>
+        <li data-st="avg" class="q"><span class="st-t" data-i18n="lab.s5">Promedio de &lt;Z&gt;</span><span class="st-v mono">—</span></li>
+        <li data-st="risk"><span class="st-t" data-i18n="lab.s6">Riesgo híbrido</span><span class="st-v mono">—</span></li>
+      </ol>
+      <p class="sr-only" id="run-live" aria-live="polite"></p>
+    </div>
+
+    <!-- B. Circuito -->
+    <div class="panel lab-b" id="lab-b" aria-labelledby="lab-b-t" hidden>
+      <h3 id="lab-b-t" data-i18n="lab.bT">Circuito vivo</h3>
+      <p class="lede sm" data-i18n="lab.bLede">Mueve los ángulos de entrada. Un simulador de 4 qubits (vector de estado de 16 amplitudes) recalcula todo al instante.</p>
+      <div class="circ-top">
+        <div class="sliders" id="sliders"></div>
+        <div class="circ-ctl">
+          <div class="seg" role="group" aria-label="Pesos del circuito" data-i18n-attr="aria-label=lab.weights">
+            <button type="button" id="w-rand" aria-pressed="false" data-i18n="lab.wRand">Pesos aleatorios</button>
+            <button type="button" id="w-train" aria-pressed="true" data-i18n="lab.wTrain">Pesos entrenados</button>
+          </div>
+          <button type="button" class="btn btn-q" id="use-patch">Usar los ángulos del parche elegido</button>
+          <button type="button" class="chip-btn" id="reset-ang" data-i18n="lab.reset">Poner ángulos en cero</button>
+          <p class="sr-only" id="circ-live" aria-live="polite"></p>
+        </div>
+      </div>
+      <div class="circ-main">
+        <div class="circ-wrap">
+          <div class="circ-box" id="circ-box"><svg id="circuit" role="img" aria-label="Circuito"></svg></div>
+          <div class="circ-legend" role="group" aria-label="Compuertas">
+            <button type="button" class="term" data-tip="tip.gEnc" data-i18n="lab.lgEnc">RY de entrada (viene de la CNN)</button>
+            <button type="button" class="term" data-tip="tip.gW" data-i18n="lab.lgW">RY con peso entrenable</button>
+            <button type="button" class="term" data-tip="tip.cx" data-i18n="lab.lgCx">CNOT</button>
+            <button type="button" class="term" data-tip="tip.meas" data-i18n="lab.lgMeas">Medir &lt;Z&gt;</button>
+          </div>
+          <p class="hint" data-i18n="lab.lgHint">Toca o pasa el cursor sobre una compuerta para ver qué hace.</p>
+        </div>
+        <div class="zpanel">
+          <h4 data-i18n="lab.zT">Resultado de la medición</h4>
+          <div id="zbars" class="zbars"></div>
+          <p class="zmean mono" id="zmean">—</p>
+          <p class="zlink" id="zlink"></p>
+        </div>
+      </div>
+      <p class="sim-note" id="sim-note" hidden></p>
+      <details class="more" id="psi-det">
+        <summary data-i18n="lab.psiS">Ver el vector de estado (16 amplitudes)</summary>
+        <div id="psi" class="psi"></div>
+      </details>
+    </div>
+  </div>
+</section>
+
+<!-- ============================ RESULTADOS ============================ -->
+<section id="resultados" class="sec" aria-labelledby="h-res">
+  <div class="wrap">
+    <h2 id="h-res" data-i18n="res.h2">Resultados: clásico frente a cuántico</h2>
+    <p class="lede" id="res-lede" data-i18n="res.lede">Misma CNN, dos cabezas: una capa lineal clásica y el circuito de 4 qubits. Aquí van las métricas en el conjunto de prueba.</p>
+    <div class="res-grid">
+      <div class="res-table-wrap">
+        <table class="res-table" id="res-table">
+          <caption class="sr-only" data-i18n="res.cap">Métricas de los dos modelos</caption>
+          <thead><tr><th scope="col" data-i18n="res.metric">Métrica</th><th scope="col" data-i18n="res.cls">Clásico</th><th scope="col" data-i18n="res.hyb">Híbrido</th></tr></thead>
+          <tbody id="res-body"></tbody>
+        </table>
+        <p class="chance mono" id="res-chance">—</p>
+      </div>
+      <figure class="chart-fig">
+        <div class="chart-head">
+          <div class="seg" role="group" aria-label="Curva" data-i18n-attr="aria-label=res.curveLabel">
+            <button type="button" id="ch-pr" aria-pressed="true" data-i18n="res.curvePr">PR-AUC de validación</button>
+            <button type="button" id="ch-loss" aria-pressed="false" data-i18n="res.curveLoss">Pérdida</button>
+          </div>
+        </div>
+        <div class="chart" id="chart" tabindex="0" role="group" aria-label="Gráfico de curvas por época. Usa las flechas izquierda y derecha para recorrer las épocas." data-i18n-attr="aria-label=res.chartAria"></div>
+        <figcaption id="chart-cap">—</figcaption>
+        <details class="more">
+          <summary data-i18n="res.tableS">Ver los valores de la curva en una tabla</summary>
+          <div class="tbl-scroll"><table class="res-table small" id="curve-table"></table></div>
+        </details>
+      </figure>
+    </div>
+    <div class="reading">
+      <div class="can">
+        <h3 data-i18n="res.canT">Lo que sí podemos decir</h3>
+        <ul id="can-list"></ul>
+      </div>
+      <div class="cannot">
+        <h3 data-i18n="res.cannotT">Lo que no podemos decir</h3>
+        <ul id="cannot-list"></ul>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============================ LÍMITES ============================ -->
+<section id="limites" class="sec alt" aria-labelledby="h-lim">
+  <div class="wrap">
+    <h2 id="h-lim" data-i18n="lim.h2">Límites y próximos pasos</h2>
+    <div class="lim-grid">
+      <div class="lim-now">
+        <h3 data-i18n="lim.nowT">Hoy</h3>
+        <ul class="lim-list">
+          <li data-i18n="lim.n1">Corre en simulador sin ruido, no en hardware cuántico.</li>
+          <li data-i18n="lim.n2">Máximo 400 muestras: la capa cuántica simulada es lenta.</li>
+          <li data-i18n="lim.n3">Los resultados con datos reales son preliminares.</li>
+          <li data-i18n="lim.n4">Entrenamiento y prueba aún no están separados por día.</li>
+          <li data-i18n="lim.n5">No afirmamos ventaja cuántica ni uso operativo.</li>
+        </ul>
+      </div>
+      <figure class="lim-path">
+        <svg viewBox="0 0 360 236" role="img" aria-labelledby="lim-cap" class="svg-lim">
+          <g class="lp-node"><rect x="10" y="10" width="150" height="60" rx="8" class="lp-a"/><text x="85" y="36" text-anchor="middle" class="lp-t" data-i18n="lim.sim">Simulador</text><text x="85" y="58" text-anchor="middle" class="lp-s" data-i18n="lim.sim2">sin ruido</text></g>
+          <g class="lp-node"><rect x="200" y="10" width="150" height="60" rx="8" class="lp-b"/><text x="275" y="36" text-anchor="middle" class="lp-t" data-i18n="lim.hw">Hardware real</text><text x="275" y="58" text-anchor="middle" class="lp-s" data-i18n="lim.hw2">Qiskit Runtime</text></g>
+          <path d="M162 40 H196" class="lp-arrow"/><path d="M189 33 L197 40 L189 47" class="lp-arrow" fill="none"/>
+          <path d="M205 96 q10 -14 20 0 t20 0 t20 0 t20 0 t20 0 t20 0" class="lp-noise"/>
+          <text x="275" y="126" text-anchor="middle" class="lp-s" data-i18n="lim.noise">aparece el ruido</text>
+          <text x="10" y="166" class="lp-s lp-h" data-i18n="lim.adj">Ajustes al modelo</text>
+          <g class="lp-steps">
+            <rect x="10" y="184" width="340" height="1.5" class="lp-line"/>
+            <circle cx="55" cy="185" r="6"/><circle cx="145" cy="185" r="6"/><circle cx="235" cy="185" r="6"/><circle cx="315" cy="185" r="6"/>
+            <text x="55" y="216" text-anchor="middle" class="lp-s" data-i18n="lim.p1">temporadas</text>
+            <text x="145" y="216" text-anchor="middle" class="lp-s" data-i18n="lim.p2">por día</text>
+            <text x="235" y="216" text-anchor="middle" class="lp-s" data-i18n="lim.p3">ansatz</text>
+            <text x="315" y="216" text-anchor="middle" class="lp-s" data-i18n="lim.p4">qubits</text>
+          </g>
+        </svg>
+        <figcaption id="lim-cap" data-i18n="lim.cap">Esquema del camino: del simulador al hardware real, y los ajustes del modelo.</figcaption>
+      </figure>
+      <div class="lim-next">
+        <h3 data-i18n="lim.nextT">Próximos pasos</h3>
+        <ol class="next-list">
+          <li data-i18n="lim.x1">Ejecutar en hardware real con Qiskit Runtime y medir el efecto del ruido.</li>
+          <li data-i18n="lim.x2">Sumar más temporadas de lluvia.</li>
+          <li data-i18n="lim.x3">Separar entrenamiento y prueba por día.</li>
+          <li data-i18n="lim.x4">Ajustar el ansatz y el número de qubits.</li>
+        </ol>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============================ REPRODUCIR ============================ -->
+<section id="reproducir" class="sec" aria-labelledby="h-rep">
+  <div class="wrap">
+    <h2 id="h-rep" data-i18n="rep.h2">Reproducir el experimento</h2>
+    <p class="lede" data-i18n="rep.lede">Dos comandos, en este orden.</p>
+    <div class="code-grid">
+      <div class="code-block">
+        <p class="code-t" data-i18n="rep.c1t">1. Descargar imágenes y etiquetas</p>
+        <div class="code-row"><pre><code id="cmd1">python goes_sierra_lima.py --inicio AAAA-MM-DD --fin AAAA-MM-DD --salida dataset.csv</code></pre>
+          <button type="button" class="copy" data-copy="cmd1"><svg class="ico" aria-hidden="true"><use href="#i-copy"/></svg><span data-i18n="ui.copy">Copiar</span></button></div>
+        <p class="code-n" data-i18n="rep.c1n">Genera el CSV y el archivo de parches.</p>
+      </div>
+      <div class="code-block">
+        <p class="code-t" data-i18n="rep.c2t">2. Entrenar y comparar</p>
+        <div class="code-row"><pre><code id="cmd2">python qsvc_lluvias.py --csv dataset.csv</code></pre>
+          <button type="button" class="copy" data-copy="cmd2"><svg class="ico" aria-hidden="true"><use href="#i-copy"/></svg><span data-i18n="ui.copy">Copiar</span></button></div>
+        <p class="code-n" data-i18n="rep.c2n">Entrena y compara ambos modelos. Con <code>--demo</code> se prueba el flujo con parches sintéticos.</p>
+      </div>
+    </div>
+    <div class="req">
+      <h3 data-i18n="rep.reqT">Requisitos</h3>
+      <ul>
+        <li data-i18n="rep.r1">Python con PyTorch, Qiskit y qiskit-machine-learning.</li>
+        <li data-i18n="rep.r2">Cuenta gratuita de NASA Earthdata, para las etiquetas IMERG.</li>
+      </ul>
+      <a class="btn btn-ghost" id="repo-link" href="#equipo"><span data-i18n="rep.repo">Abrir el repositorio</span> <svg class="ico" aria-hidden="true"><use href="#i-ext"/></svg></a>
+    </div>
+  </div>
+</section>
+
+<!-- ============================ EQUIPO ============================ -->
+<section id="equipo" class="sec alt" aria-labelledby="h-team">
+  <div class="wrap team-grid">
+    <div>
+      <h2 id="h-team" data-i18n="team.h2">Equipo y cierre</h2>
+      <p class="team-name"><span data-cfg="team">Qu-arto de pollo</span></p>
+      <ul class="members" id="members"></ul>
+      <dl class="meta-list">
+        <div><dt data-i18n="team.event">Evento</dt><dd><span data-cfg="event">—</span><br><span data-cfg="organizers"></span></dd></div>
+        <div><dt data-i18n="team.contact">Contacto</dt><dd id="contact">—</dd></div>
+        <div id="thanks-wrap" hidden><dt data-i18n="team.thanks">Agradecimientos</dt><dd id="thanks">—</dd></div>
+      </dl>
+    </div>
+    <div class="qr-card">
+      <div id="qr" class="qr" role="img" aria-label="Código QR del repositorio" data-i18n-attr="aria-label=team.qrAria"><span class="qr-ph" data-i18n="team.qrPh">El QR aparece cuando se completa la URL del repositorio en config.js</span></div>
+      <p class="qr-url mono" id="qr-url">—</p>
+    </div>
+  </div>
+</section>
+
+<!-- ============================ GLOSARIO ============================ -->
+<section id="glosario" class="sec" aria-labelledby="h-gl">
+  <div class="wrap">
+    <h2 id="h-gl" data-i18n="gl.h2">Glosario</h2>
+    <dl class="glossary" id="glossary"></dl>
+  </div>
+</section>
+
+</main>
+
+<footer class="foot">
+  <div class="wrap">
+    <p data-i18n="foot.p">Sitio estático: sin cookies, sin analítica y sin recursos externos. Todas las cifras salen del archivo data.js.</p>
+    <p class="mono foot-meta" id="foot-meta"></p>
+  </div>
+</footer>
+
+<div id="tip" class="tip" role="tooltip" hidden></div>
+
+<script src="config.js" defer></script>
+<script src="data.js" defer></script>
+<script src="js/i18n.js" defer></script>
+<script src="js/core.js" defer></script>
+<script src="js/sim.js" defer></script>
+<script src="js/viz.js" defer></script>
+<script src="js/sections.js" defer></script>
+<script src="js/lab.js" defer></script>
+<script src="js/main.js" defer></script>
+</body>
+</html>
