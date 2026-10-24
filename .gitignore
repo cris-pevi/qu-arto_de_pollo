@@ -1,0 +1,13 @@
+# Python
+__pycache__/
+*.pyc
+.venv/
+venv/
+
+# Salidas locales de predecir.py y pruebas
+pipeline/riesgo_*.png
+_prueba.html
+
+# Credenciales (Earthdata, etc.)
+.netrc
+.env

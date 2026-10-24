@@ -10,6 +10,7 @@ vm.createContext(ctx);
 vm.runInContext(fs.readFileSync(file, "utf8"), ctx);
 vm.runInContext("window.QP = window.QP || {};", ctx);
 vm.runInContext(fs.readFileSync(path.join(root, "js/sim.js"), "utf8"), ctx);
+vm.runInContext(fs.readFileSync(path.join(root, "js/models.js"), "utf8"), ctx);
 const D = ctx.window.DEMO, QP = ctx.window.QP;
 const err = [], warn = [];
 const isN = (v) => typeof v === "number" && isFinite(v);
@@ -50,6 +51,16 @@ if (D) {
   const r = QP.sim.selfTest(ci.vectores_prueba, 1e-6);
   if (r.ok === false) err.push("El simulador de JavaScript NO coincide con Qiskit en los vectores " + r.failed.join(", ") + " (error máx. " + r.maxErr + ")");
   else if (r.ok) console.log("Simulador JS vs Qiskit: " + r.n + " vectores OK, error máximo " + r.maxErr.toExponential(2));
+  if (D.modelos) {
+    const mr = QP.models.run(D, 1e-4);
+    if (!mr) err.push("modelos: faltan modelos.clasica o modelos.hibrida");
+    else {
+      if (mr.kernel.ok === false) err.push("El kernel ZZ de JavaScript NO coincide con Qiskit (error máx. " + mr.kernel.maxErr + ")");
+      else if (mr.kernel.ok) console.log("Kernel ZZ JS vs Qiskit: " + mr.kernel.n + " pares OK, error máximo " + mr.kernel.maxErr.toExponential(2));
+      if (mr.fails.length) err.push("Los modelos en JavaScript NO reproducen a PyTorch/Qiskit en: " + mr.fails.join(", ") + " (error máx. " + mr.maxErr + ")");
+      else console.log("Modelos JS vs PyTorch/Qiskit: " + mr.n + " parches OK, error máximo " + mr.maxErr.toExponential(2));
+    }
+  } else warn.push("sin 'modelos': la web mostrará probabilidades precalculadas en vez de ejecutar los modelos");
   console.log(m.is_synthetic ? "AVISO: is_synthetic = true → la web mostrará el banner de datos sintéticos." : "is_synthetic = false → el banner de datos sintéticos NO se mostrará. Verifica que son resultados reales.");
 }
 warn.forEach((w) => console.log("aviso:  " + w));

@@ -45,15 +45,18 @@
       t(pr ? "lab.predYes" : "lab.predNo") + " · " + t(ok ? "lab.right" : "lab.wrong") + "</span>";
   }
   function riskBox(p, which, pct) {
-    var prob = which === "c" ? p.p_clasico : p.p_hibrido, m = which === "c" ? DD.mc : DD.mh;
+    var prob = DD.prob(p, which), m = DD.metr(which);
     var w = QP.num(prob) ? Math.max(0, Math.min(1, prob)) * 100 : 0, u = QP.num(m.umbral) ? Math.max(0, Math.min(1, m.umbral)) * 100 : null;
-    return '<div class="risk-h"><span>' + t(which === "c" ? "lab.riskC" : "lab.riskH") + '</span><span class="mono">' + QP.fmt(prob, 2) + "</span></div>" +
+    return '<div class="risk-h"><span>' + t(which === "c" ? "lab.riskC" : which === "q" ? "lab.riskQ" : "lab.riskH") + '</span><span class="mono">' + QP.fmt(prob, 2) + "</span></div>" +
       '<div class="meter" role="img" aria-label="' + QP.esc(t("lab.meterAria", { v: QP.fmt(prob, 2), u: QP.fmt(m.umbral, 2) })) + '"><i style="width:' + (pct === 0 ? 0 : w) + '%"></i>' + (u !== null ? '<b style="left:' + u + '%"></b>' : "") + "</div>" +
       '<div class="risk-v"><span class="mono">' + t("lab.thr") + " " + QP.fmt(m.umbral, 2) + "</span>" + verdict(p, which) + "</div>";
   }
   function renderOutputs(p, zero) {
     var rc = $("#risk-c"), rh = $("#risk-h");
     rc.innerHTML = riskBox(p, "c", zero ? 0 : 1); rh.innerHTML = riskBox(p, "h", zero ? 0 : 1); rh.classList.add("hyb");
+    var rq = $("#risk-q"), hasQ = QP.num(p.p_qsvm);
+    rq.hidden = !hasQ;
+    if (hasQ) { rq.innerHTML = riskBox(p, "q", zero ? 0 : 1) + '<p class="risk-n">' + t("lab.qNote") + "</p>"; rq.classList.add("qsv"); }
     $("#truth").innerHTML = t("lab.truth", { y: QP.num(p.etiqueta) ? p.etiqueta : "—", r: QP.fmt(p.lluvia_mmh, 1) });
   }
   function resetStages() {
@@ -72,16 +75,30 @@
   async function runModel() {
     if (running) return; var p = DD.byId(selId); if (!p) return;
     running = true; var btn = $("#run"); btn.disabled = true; resetStages(); renderOutputs(p, true);
-    var delay = QP.reduced.matches ? 0 : 720, a = (p.activaciones_cnn || []).slice(0, 4), an = patchAngles(p), z = null, err = false;
-    try { z = QP.sim.run(an, DD.circ.pesos_entrenados); } catch (e) { err = true; }
+    var delay = QP.reduced.matches ? 0 : 720, a, an, z = null, q = null, ms = null;
+    var M = DD.D.modelos, live = M && DD.live && DD.live.ok;
+    if (live) {
+      /* los modelos se ejecutan de verdad, ahora, con los pesos entrenados */
+      var t0 = performance.now(), hh = QP.models.hibrida(M.hibrida, p), cc = QP.models.clasica(M.clasica, p);
+      if (M.qsvm && Array.isArray(p.features)) q = QP.models.qsvm(M.qsvm, p.features);
+      ms = performance.now() - t0;
+      a = hh.act; an = hh.ang; z = hh.z;
+      p.p_hibrido = hh.p; p.p_clasico = cc.p; if (q) { p.p_qsvm = q.p; p.d_qsvm = q.dec; }
+    } else {
+      a = (p.activaciones_cnn || []).slice(0, 4); an = patchAngles(p);
+      try { z = QP.sim.run(an, DD.circ.pesos_entrenados); } catch (e) { z = null; }
+    }
+    function vec(v, d) { return "(" + v.map(function (x) { return QP.fmt(x, d); }).join(", ") + ")"; }
     var steps = [
       ["patch", "2×16×16 · " + p.id],
-      ["cnn", a.length === 4 ? "(" + a.map(function (v) { return QP.fmt(v, 2); }).join(", ") + ")" : "—"],
-      ["ang", an.length === 4 ? "(" + an.map(function (v) { return QP.fmt(v, 2); }).join(", ") + ") rad" : "—"],
-      ["qc", z ? "(" + z.z.map(function (v) { return QP.fmt(v, 2); }).join(", ") + ")" : "—"],
+      ["cnn", a.length === 4 ? vec(a, 2) : "—"],
+      ["ang", an.length === 4 ? vec(an, 2) + " rad" : "—"],
+      ["qc", z ? vec(z.z, 2) : "—"],
       ["avg", z ? QP.fmt(z.mean, 3) : "—"],
       ["risk", QP.fmt(p.p_hibrido, 2) + " · " + t("lab.vsC") + " " + QP.fmt(p.p_clasico, 2)]
     ];
+    if (q) steps.push(["qsvm", t("lab.qStep", { a: vec(q.ang, 2), n: q.nsv, d: QP.fmtSigned(q.dec, 2) })]);
+    $('#stages li[data-st="qsvm"]').hidden = !q;
     for (var i = 0; i < steps.length; i++) {
       var li = $('#stages li[data-st="' + steps[i][0] + '"]');
       li.classList.add("on"); li.querySelector(".st-v").textContent = steps[i][1];
@@ -89,8 +106,16 @@
       li.classList.remove("on"); li.classList.add("done");
     }
     renderOutputs(p);
+    if (ms !== null) $("#live-note").textContent = t("lab.liveRun", { ms: QP.fmt(ms, 1) });
     $("#run-live").textContent = t("lab.runDone", { id: p.id, h: QP.fmt(p.p_hibrido, 2), c: QP.fmt(p.p_clasico, 2), y: QP.num(p.etiqueta) ? p.etiqueta : "—" });
     btn.disabled = false; running = false;
+  }
+  function liveNote() {
+    var n = $("#live-note"), L = DD.live;
+    n.hidden = false;
+    if (!L) { n.className = "sim-note"; n.textContent = t("lab.livePre"); }
+    else if (L.ok) { n.className = "sim-note"; n.textContent = t("lab.liveOk", { n: L.n, e: L.maxErr.toExponential(1) }); }
+    else { n.className = "sim-note err"; n.textContent = t("lab.liveBad"); }
   }
 
   /* ============================== B. Circuito ============================== */
@@ -224,6 +249,7 @@
     $("#lab-a").hidden = false; $("#lab-b").hidden = false;
 
     testResult = QP.sim.selfTest(DD.circ.vectores_prueba, 1e-6);
+    liveNote();
 
     /* guía */
     var guide = $("#guide"), gopen = $("#guide-open");
@@ -272,7 +298,7 @@
     update();
 
     QP.onLang(function () {
-      buildPicker(); buildSliders(); selectPatch(selId); update();
+      buildPicker(); buildSliders(); selectPatch(selId); update(); liveNote();
       paintBar("bt", [DD.bt[1], DD.bt[0]], function (v) { return v + " K"; });
     });
   }

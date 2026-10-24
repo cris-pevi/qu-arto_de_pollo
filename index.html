@@ -93,7 +93,7 @@
       <li><strong>Qué encontramos:</strong> corre en simulador sin ruido, no en hardware cuántico; los resultados con datos reales son preliminares. Con JavaScript activado verás las cifras y si los datos son sintéticos.</li>
       <li><strong>Qué sigue:</strong> hardware real (Qiskit Runtime), ruido, más temporadas de lluvia y separar entrenamiento y prueba por día.</li>
     </ul>
-    <p>Reproducir: <code>python goes_sierra_lima.py --inicio AAAA-MM-DD --fin AAAA-MM-DD --salida dataset.csv</code> y luego <code>python qsvc_lluvias.py --csv dataset.csv</code>.</p>
+    <p>Reproducir (en la carpeta <code>pipeline/</code>): <code>python goes_sierra_lima.py --inicio AAAA-MM-DD --fin AAAA-MM-DD --salida dataset.csv</code>, luego <code>python cnn_hibrida.py --csv dataset.csv --guardar modelo</code>, <code>python qsvc_lluvias.py --csv dataset.csv --guardar modelo</code> y <code>python exportar_web.py --csv dataset.csv</code>.</p>
   </div>
 </noscript>
 
@@ -288,7 +288,7 @@
 <section id="laboratorio" class="sec alt lab" aria-labelledby="h-lab">
   <div class="wrap">
     <h2 id="h-lab" data-i18n="lab.h2">Laboratorio</h2>
-    <p class="lede" data-i18n="lab.lede">Todo corre en tu navegador, con datos precalculados y un simulador cuántico propio.</p>
+    <p class="lede" data-i18n="lab.lede">Todo corre en tu navegador: la CNN híbrida, la CNN clásica y la QSVM se ejecutan aquí con sus pesos entrenados, sobre un simulador cuántico propio.</p>
 
     <aside class="guide" id="guide" aria-labelledby="guide-t">
       <div class="guide-h"><h3 id="guide-t" data-i18n="lab.guideT">Guía de 3 pasos</h3>
@@ -329,6 +329,7 @@
         <div class="outputs">
           <div class="risk" id="risk-c"></div>
           <div class="risk" id="risk-h"></div>
+          <div class="risk" id="risk-q" hidden></div>
           <p class="truth" id="truth">—</p>
           <button type="button" class="btn btn-primary" id="run"><svg class="ico" aria-hidden="true"><use href="#i-play"/></svg> <span data-i18n="lab.run">Correr modelo</span></button>
         </div>
@@ -340,7 +341,9 @@
         <li data-st="qc" class="q"><span class="st-t" data-i18n="lab.s4">Circuito: &lt;Z&gt; por qubit</span><span class="st-v mono">—</span></li>
         <li data-st="avg" class="q"><span class="st-t" data-i18n="lab.s5">Promedio de &lt;Z&gt;</span><span class="st-v mono">—</span></li>
         <li data-st="risk"><span class="st-t" data-i18n="lab.s6">Riesgo híbrido</span><span class="st-v mono">—</span></li>
+        <li data-st="qsvm" class="q" hidden><span class="st-t" data-i18n="lab.s7">QSVM: kernel cuántico ZZ</span><span class="st-v mono">—</span></li>
       </ol>
+      <p class="sim-note" id="live-note" hidden></p>
       <p class="sr-only" id="run-live" aria-live="polite"></p>
     </div>
 
@@ -396,7 +399,7 @@
       <div class="res-table-wrap">
         <table class="res-table" id="res-table">
           <caption class="sr-only" data-i18n="res.cap">Métricas de los dos modelos</caption>
-          <thead><tr><th scope="col" data-i18n="res.metric">Métrica</th><th scope="col" data-i18n="res.cls">Clásico</th><th scope="col" data-i18n="res.hyb">Híbrido</th></tr></thead>
+          <thead><tr><th scope="col" data-i18n="res.metric">Métrica</th><th scope="col" data-i18n="res.cls">Clásico</th><th scope="col" data-i18n="res.hyb">Híbrido</th><th scope="col" hidden>QSVM</th></tr></thead>
           <tbody id="res-body"></tbody>
         </table>
         <p class="chance mono" id="res-chance">—</p>
@@ -480,7 +483,7 @@
 <section id="reproducir" class="sec" aria-labelledby="h-rep">
   <div class="wrap">
     <h2 id="h-rep" data-i18n="rep.h2">Reproducir el experimento</h2>
-    <p class="lede" data-i18n="rep.lede">Dos comandos, en este orden.</p>
+    <p class="lede" data-i18n="rep.lede">Tres pasos, en este orden, desde la carpeta <code>pipeline/</code> del repositorio.</p>
     <div class="code-grid">
       <div class="code-block">
         <p class="code-t" data-i18n="rep.c1t">1. Descargar imágenes y etiquetas</p>
@@ -489,10 +492,18 @@
         <p class="code-n" data-i18n="rep.c1n">Genera el CSV y el archivo de parches.</p>
       </div>
       <div class="code-block">
-        <p class="code-t" data-i18n="rep.c2t">2. Entrenar y comparar</p>
-        <div class="code-row"><pre><code id="cmd2">python qsvc_lluvias.py --csv dataset.csv</code></pre>
+        <p class="code-t" data-i18n="rep.c2t">2. Entrenar y guardar los modelos</p>
+        <div class="code-row"><pre><code id="cmd2">python cnn_hibrida.py --csv dataset.csv --guardar modelo
+python qsvc_lluvias.py --csv dataset.csv --guardar modelo</code></pre>
           <button type="button" class="copy" data-copy="cmd2"><svg class="ico" aria-hidden="true"><use href="#i-copy"/></svg><span data-i18n="ui.copy">Copiar</span></button></div>
-        <p class="code-n" data-i18n="rep.c2n">Entrena y compara ambos modelos. Con <code>--demo</code> se prueba el flujo con parches sintéticos.</p>
+        <p class="code-n" data-i18n="rep.c2n">Sin <code>--guardar</code> hacen la validación cruzada por día y comparan con modelos clásicos. Con <code>--demo</code> se prueba el flujo con datos sintéticos.</p>
+      </div>
+      <div class="code-block">
+        <p class="code-t" data-i18n="rep.c3t">3. Llevar los modelos a esta web</p>
+        <div class="code-row"><pre><code id="cmd3">python exportar_web.py --csv dataset.csv
+node ../tools/validar_data.js</code></pre>
+          <button type="button" class="copy" data-copy="cmd3"><svg class="ico" aria-hidden="true"><use href="#i-copy"/></svg><span data-i18n="ui.copy">Copiar</span></button></div>
+        <p class="code-n" data-i18n="rep.c3n">Escribe los pesos de los tres modelos en <code>data.js</code> y comprueba que el navegador reproduce a PyTorch y Qiskit.</p>
       </div>
     </div>
     <div class="req">
@@ -550,6 +561,7 @@
 <script src="js/i18n.js" defer></script>
 <script src="js/core.js" defer></script>
 <script src="js/sim.js" defer></script>
+<script src="js/models.js" defer></script>
 <script src="js/viz.js" defer></script>
 <script src="js/sections.js" defer></script>
 <script src="js/lab.js" defer></script>

@@ -1,0 +1,20 @@
+# goes_sierra_lima.py
+numpy
+pandas
+xarray
+s3fs
+h5netcdf
+h5py
+cftime
+earthaccess
+
+# qsvc_lluvias.py
+scikit-learn
+qiskit
+qiskit-machine-learning
+
+# cnn_hibrida.py
+torch==2.5.1
+
+# predecir.py (mapa de riesgo)
+matplotlib

@@ -286,6 +286,9 @@ h3{font-size:1.2rem;margin-bottom:10px}
 .meter{position:relative;height:14px;background:var(--surface-2);border-radius:3px;margin:8px 0 6px;overflow:visible}
 .meter>i{position:absolute;left:0;top:0;bottom:0;border-radius:3px;background:var(--series-c);transition:width .5s ease}
 .hyb .meter>i{background:var(--q)}
+.risk.qsv{border-color:var(--series-h);border-style:dashed}
+.qsv .meter>i{background:var(--series-h)}
+.risk-n{margin:6px 0 0;font-size:.8rem;color:var(--text-2)}
 .meter>b{position:absolute;top:-4px;bottom:-4px;width:3px;background:var(--text);margin-left:-1px;border-radius:1px}
 .risk-v{font-size:.9rem;color:var(--text-2);display:flex;align-items:center;gap:6px;flex-wrap:wrap}
 .vd{display:inline-flex;align-items:center;gap:4px;font-weight:650}

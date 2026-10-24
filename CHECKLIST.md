@@ -14,7 +14,8 @@ Marca cada punto antes de mandar el enlace o el QR al jurado.
 - [ ] `config.js` completo: integrantes, `repoUrl`, `contact`, criterios del jurado. Consola (F12) sin el aviso «Pendiente de completar».
 - [ ] El enlace al repositorio abre y el repositorio es público (o el jurado tiene acceso).
 - [ ] El QR de la sección Equipo se escanea con un teléfono y lleva al repositorio.
-- [ ] Los comandos de **Reproducir** coinciden con los del repositorio (`goes_sierra_lima.py`, `qsvc_lluvias.py`, `--demo`) y los botones de copiar funcionan.
+- [ ] Los comandos de **Reproducir** coinciden con los de `pipeline/` (`goes_sierra_lima.py`, `cnn_hibrida.py`, `qsvc_lluvias.py`, `exportar_web.py`) y los botones de copiar funcionan.
+- [ ] Ningún archivo del repositorio tiene credenciales (busca `EARTHDATA` y contraseñas antes de cada commit).
 
 ## Publicación
 - [ ] Sitio publicado en GitHub Pages o Netlify; la dirección abre desde una ventana privada.

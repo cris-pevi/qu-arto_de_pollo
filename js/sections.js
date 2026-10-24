@@ -14,12 +14,24 @@
     DD.meta = (DD.D && DD.D.meta) || {};
     DD.patches = DD.D && Array.isArray(DD.D.patches) ? DD.D.patches.filter(function (p) { return p && p.bt && p.dbt; }) : [];
     DD.m = (DD.D && DD.D.metricas) || {};
-    DD.mc = DD.m.clasico || {}; DD.mh = DD.m.hibrido || {};
+    DD.mc = DD.m.clasico || {}; DD.mh = DD.m.hibrido || {}; DD.mq = DD.m.qsvm || {};
     DD.baseline = DD.D ? DD.D.baseline_azar : undefined;
     DD.curves = (DD.D && DD.D.curvas) || {};
     DD.circ = (DD.D && DD.D.circuito) || {};
     DD.synthetic = !(DD.meta && DD.meta.is_synthetic === false);   /* solo "false" explícito quita el aviso */
     DD.dbtCambio = !(window.CONFIG && window.CONFIG.dbtEsCambio === false);
+    /* los tres modelos se ejecutan aquí, en el navegador. Si reproducen la referencia de
+       PyTorch/Qiskit, sus resultados reemplazan a los precalculados en todo el sitio. */
+    DD.live = null;
+    if (DD.D && QP.models) {
+      try { DD.live = QP.models.run(DD.D, 1e-4); } catch (e) { console.error(e); DD.live = null; }
+      if (DD.live && DD.live.ok) DD.patches.forEach(function (p) {
+        var L = DD.live.live[p.id]; if (!L) return;
+        p.p_clasico = L.c.p; p.p_hibrido = L.h.p; p.activaciones_cnn = L.h.act;
+        if (L.q) { p.p_qsvm = L.q.p; p.d_qsvm = L.q.dec; }
+      });
+      else if (DD.live) console.error("[models.js] Los modelos en JS no reproducen a PyTorch/Qiskit en: " + DD.live.fails.join(", "));
+    }
     /* dominios globales de color, para que el mismo color signifique lo mismo en todos los parches */
     var bmin = Infinity, bmax = -Infinity, cmin = Infinity, cmax = -Infinity;
     DD.patches.forEach(function (p) {
@@ -37,14 +49,16 @@
   DD.change = function (v) { return DD.dbtCambio ? v : -v; };              /* cambio en K: negativo = se enfrió */
   DD.btT = function (v) { return (DD.bt[1] - v) / (DD.bt[1] - DD.bt[0]); };       /* frío -> brillante */
   DD.clT = function (v) { return (DD.cool(v) - DD.cl[0]) / (DD.cl[1] - DD.cl[0]); };
+  DD.metr = function (which) { return which === "c" ? DD.mc : which === "q" ? DD.mq : DD.mh; };
+  DD.prob = function (p, which) { return which === "c" ? p.p_clasico : which === "q" ? p.p_qsvm : p.p_hibrido; };
   DD.pred = function (p, which) {
-    var u = (which === "c" ? DD.mc : DD.mh).umbral, pr = which === "c" ? p.p_clasico : p.p_hibrido;
+    var u = DD.metr(which).umbral, pr = DD.prob(p, which);
     return QP.num(u) && QP.num(pr) ? pr >= u : null;
   };
   /* categoría del parche: positivo / negativo / difícil (algún modelo falla) */
   DD.cat = function (p) {
-    var a = DD.pred(p, "c"), b = DD.pred(p, "h"), y = !!p.etiqueta;
-    if ((a !== null && a !== y) || (b !== null && b !== y)) return "hard";
+    var a = DD.pred(p, "c"), b = DD.pred(p, "h"), q = DD.pred(p, "q"), y = !!p.etiqueta;
+    if ((a !== null && a !== y) || (b !== null && b !== y) || (q !== null && q !== y)) return "hard";
     return y ? "pos" : "neg";
   };
   DD.local = function (hhmm) {        /* hora_utc "HH:MM" -> hora de Perú (UTC−5) */
@@ -267,18 +281,21 @@
     return '<svg width="26" height="10" viewBox="0 0 26 10" aria-hidden="true" style="vertical-align:middle;margin-right:6px"><line x1="1" y1="5" x2="25" y2="5" stroke="var(--series-' + cls + ')" stroke-width="3" ' + (cls === "h" ? 'stroke-dasharray="7 3"' : "") + ' stroke-linecap="round"/></svg>';
   }
   function renderTable() {
+    var q = DD.mq, hasQ = QP.num(q.PR_AUC);
     var rows = [
-      ["F1", QP.fmt(DD.mc.F1, 3), QP.fmt(DD.mh.F1, 3), "res.f1"],
-      ["PR-AUC", QP.fmt(DD.mc.PR_AUC, 3), QP.fmt(DD.mh.PR_AUC, 3), "res.pr"],
-      ["", QP.fmt(DD.mc.umbral, 2), QP.fmt(DD.mh.umbral, 2), "res.thr"],
-      ["", QP.fmtInt(DD.mc.parametros), QP.fmtInt(DD.mh.parametros), "res.params"],
-      ["", QP.fmtDur(DD.mc.t_entreno_s), QP.fmtDur(DD.mh.t_entreno_s), "res.time"]
+      ["F1", QP.fmt(DD.mc.F1, 3), QP.fmt(DD.mh.F1, 3), "res.f1", QP.fmt(q.F1, 3)],
+      ["PR-AUC", QP.fmt(DD.mc.PR_AUC, 3), QP.fmt(DD.mh.PR_AUC, 3), "res.pr", QP.fmt(q.PR_AUC, 3)],
+      ["", QP.fmt(DD.mc.umbral, 2), QP.fmt(DD.mh.umbral, 2), "res.thr", QP.fmt(q.umbral, 2)],
+      ["", QP.fmtInt(DD.mc.parametros), QP.fmtInt(DD.mh.parametros), "res.params",
+        QP.num(q.vectores_soporte) ? t("res.nsv", { n: QP.fmtInt(q.vectores_soporte) }) : "—"],
+      ["", QP.fmtDur(DD.mc.t_entreno_s), QP.fmtDur(DD.mh.t_entreno_s), "res.time", QP.fmtDur(q.t_entreno_s)]
     ];
     $("#res-body").innerHTML = rows.map(function (r) {
-      return "<tr><th scope=\"row\" style=\"font-weight:550;text-align:left;color:var(--text)\">" + t(r[3]) + "</th><td>" + r[1] + "</td><td>" + r[2] + "</td></tr>";
+      return "<tr><th scope=\"row\" style=\"font-weight:550;text-align:left;color:var(--text)\">" + t(r[3]) + "</th><td>" + r[1] + "</td><td>" + r[2] + "</td>" + (hasQ ? "<td>" + r[4] + "</td>" : "") + "</tr>";
     }).join("");
     var th = $$("#res-table thead th");
     th[1].innerHTML = swatch("c") + t("res.cls"); th[2].innerHTML = swatch("h") + t("res.hyb");
+    th[3].hidden = !hasQ; th[3].textContent = t("res.qsvm");
     $("#res-chance").textContent = t("res.chance", { b: QP.fmt(DD.baseline, 3) });
   }
   function series(kind) {
@@ -407,6 +424,8 @@
       t("res.can2", { c: QP.fmt(DD.mc.PR_AUC, 3), h: QP.fmt(DD.mh.PR_AUC, 3), b: QP.fmt(DD.baseline, 3) }),
       t("res.can3", { dp: QP.fmtSigned(dp, 3), df: QP.fmtSigned(df, 3) })
     ];
+    if (QP.num(DD.mq.PR_AUC)) can.push(t("res.can4", { q: QP.fmt(DD.mq.PR_AUC, 3), n: QP.fmtInt(DD.mq.vectores_soporte) }));
+    if (DD.live && DD.live.ok) can.push(t("res.can5"));
     var cannot = [];
     if (DD.synthetic) cannot.push(t("res.cannotSyn"));
     cannot.push(t("res.cannot1"), t("res.cannot2"), t("res.cannot3"));
