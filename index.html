@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Qu-arto de pollo · Lluvia intensa en Piura con un modelo híbrido clásico-cuántico</title>
-<meta name="description" content="Demo interactiva: un modelo híbrido (CNN + circuito cuántico de 4 qubits) estima el riesgo de lluvia intensa en Piura a 2 horas con imágenes GOES-19. Simulador, resultados preliminares.">
+<meta name="description" content="Demo interactiva: un modelo híbrido (CNN + circuito cuántico de 4 qubits) estima el riesgo de lluvia intensa en Piura a 2 horas con imágenes GOES-East. Simulador, resultados preliminares.">
 <meta name="color-scheme" content="dark light">
 <meta name="theme-color" content="#0A1224">
 <link rel="icon" href="assets/favicon.svg" type="image/svg+xml">
@@ -89,7 +89,7 @@
     <p><strong>Esta demo interactiva necesita JavaScript.</strong> Resumen sin él:</p>
     <ul>
       <li><strong>Problema:</strong> anticipar lluvias intensas en el Bajo y Medio Piura (Perú) con unas horas de margen.</li>
-      <li><strong>Qué hicimos:</strong> un modelo híbrido (CNN + circuito cuántico de 4 qubits, PyTorch + Qiskit) que lee imágenes infrarrojas del satélite GOES-19 y estima el riesgo de lluvia intensa en las próximas 2 horas, y lo comparamos con la misma CNN con cabeza clásica.</li>
+      <li><strong>Qué hicimos:</strong> un modelo híbrido (CNN + circuito cuántico de 4 qubits, PyTorch + Qiskit) que lee imágenes infrarrojas del satélite GOES-East y estima el riesgo de lluvia intensa en las próximas 2 horas, y lo comparamos con la misma CNN con cabeza clásica.</li>
       <li><strong>Qué encontramos:</strong> corre en simulador sin ruido, no en hardware cuántico; los resultados con datos reales son preliminares. Con JavaScript activado verás las cifras y si los datos son sintéticos.</li>
       <li><strong>Qué sigue:</strong> hardware real (Qiskit Runtime), ruido, más temporadas de lluvia y separar entrenamiento y prueba por día.</li>
     </ul>
@@ -104,7 +104,7 @@
   <canvas id="ir-field" class="ir-field" aria-hidden="true"></canvas>
   <div class="wrap hero-in">
     <ul class="tags" aria-label="Hechos clave" data-i18n-attr="aria-label=hero.tagsLabel">
-      <li data-i18n="hero.tag1">GOES-19 + IMERG</li>
+      <li data-i18n="hero.tag1">GOES-East + IMERG</li>
       <li class="q" data-i18n="hero.tag2">CNN + circuito de 4 qubits</li>
       <li data-i18n="hero.tag3">Simulador · resultados preliminares</li>
     </ul>
@@ -124,7 +124,7 @@
     <h2 id="h-sum" data-i18n="sum.h2">En 30 segundos</h2>
     <dl class="quick">
       <div><dt data-i18n="sum.k1">El problema</dt><dd data-i18n="sum.v1">Anticipar lluvias intensas en el Bajo y Medio Piura con un par de horas de margen.</dd></div>
-      <div><dt data-i18n="sum.k2">Qué hicimos</dt><dd data-i18n="sum.v2">Un modelo híbrido (CNN + circuito de 4 qubits) lee imágenes infrarrojas de GOES-19 y estima el riesgo en parches de ~32 km.</dd></div>
+      <div><dt data-i18n="sum.k2">Qué hicimos</dt><dd data-i18n="sum.v2">Un modelo híbrido (CNN + circuito de 4 qubits) lee imágenes infrarrojas de GOES-East y estima el riesgo en parches de ~32 km.</dd></div>
       <div><dt data-i18n="sum.k3">Qué encontramos</dt><dd id="sum-found">—</dd></div>
       <div><dt data-i18n="sum.k4">Qué sigue</dt><dd data-i18n="sum.v4">Probar en hardware cuántico real, con ruido, y con más temporadas de lluvia.</dd></div>
     </dl>
@@ -394,7 +394,7 @@
 <section id="resultados" class="sec" aria-labelledby="h-res">
   <div class="wrap">
     <h2 id="h-res" data-i18n="res.h2">Resultados: clásico frente a cuántico</h2>
-    <p class="lede" id="res-lede" data-i18n="res.lede">Misma CNN, dos cabezas: una capa lineal clásica y el circuito de 4 qubits. Aquí van las métricas en el conjunto de prueba.</p>
+    <p class="lede" id="res-lede" data-i18n="res.lede">Misma CNN con dos cabezas (una capa lineal clásica o el circuito de 4 qubits), más una QSVM con kernel cuántico. Las métricas son del día de validación: no se usó para ajustar pesos, pero sí para el early stopping y el umbral.</p>
     <div class="res-grid">
       <div class="res-table-wrap">
         <table class="res-table" id="res-table">
@@ -440,10 +440,10 @@
       <div class="lim-now">
         <h3 data-i18n="lim.nowT">Hoy</h3>
         <ul class="lim-list">
-          <li data-i18n="lim.n1">Corre en simulador sin ruido, no en hardware cuántico.</li>
+          <li data-i18n="lim.n1">Corre en simuladores exactos y sin ruido (Qiskit en CPU para entrenar, nuestro simulador en el navegador), no en hardware cuántico.</li>
           <li data-i18n="lim.n2">Máximo 400 muestras: la capa cuántica simulada es lenta.</li>
           <li data-i18n="lim.n3">Los resultados con datos reales son preliminares.</li>
-          <li data-i18n="lim.n4">Entrenamiento y prueba aún no están separados por día.</li>
+          <li data-i18n="lim.n4">Las métricas de esta web salen de un solo día de validación, que también se usó para el early stopping y el umbral: son optimistas. En validación cruzada por día, híbrido y clásico empatan.</li>
           <li data-i18n="lim.n5">No afirmamos ventaja cuántica ni uso operativo.</li>
         </ul>
       </div>
@@ -459,7 +459,7 @@
             <rect x="10" y="184" width="340" height="1.5" class="lp-line"/>
             <circle cx="55" cy="185" r="6"/><circle cx="145" cy="185" r="6"/><circle cx="235" cy="185" r="6"/><circle cx="315" cy="185" r="6"/>
             <text x="55" y="216" text-anchor="middle" class="lp-s" data-i18n="lim.p1">temporadas</text>
-            <text x="145" y="216" text-anchor="middle" class="lp-s" data-i18n="lim.p2">por día</text>
+            <text x="145" y="216" text-anchor="middle" class="lp-s" data-i18n="lim.p2">prueba</text>
             <text x="235" y="216" text-anchor="middle" class="lp-s" data-i18n="lim.p3">ansatz</text>
             <text x="315" y="216" text-anchor="middle" class="lp-s" data-i18n="lim.p4">qubits</text>
           </g>
@@ -469,9 +469,9 @@
       <div class="lim-next">
         <h3 data-i18n="lim.nextT">Próximos pasos</h3>
         <ol class="next-list">
-          <li data-i18n="lim.x1">Ejecutar en hardware real con Qiskit Runtime y medir el efecto del ruido.</li>
+          <li data-i18n="lim.x1">Inferencia en hardware real con Qiskit Runtime usando los pesos ya entrenados (reentrenar ahí no es viable: cada época pide miles de circuitos), pasando antes por un simulador con ruido (Qiskit Aer). En la QSVM, evaluar en hardware el kernel contra los vectores de soporte.</li>
           <li data-i18n="lim.x2">Sumar más temporadas de lluvia.</li>
-          <li data-i18n="lim.x3">Separar entrenamiento y prueba por día.</li>
+          <li data-i18n="lim.x3">Separar un día de prueba independiente del día usado para el early stopping y el umbral.</li>
           <li data-i18n="lim.x4">Ajustar el ansatz y el número de qubits.</li>
         </ol>
       </div>

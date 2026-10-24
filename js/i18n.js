@@ -56,7 +56,7 @@
     "nav.resultados": "Results", "nav.limites": "Limits", "nav.reproducir": "Reproduce", "nav.equipo": "Team",
 
     "hero.tagsLabel": "Key facts",
-    "hero.tag1": "GOES-19 + IMERG", "hero.tag2": "CNN + 4-qubit circuit", "hero.tag3": "Simulator · preliminary results",
+    "hero.tag1": "GOES-East + IMERG", "hero.tag2": "CNN + 4-qubit circuit", "hero.tag3": "Simulator · preliminary results",
     "hero.h1": "Heavy-rain risk in Piura two hours ahead, estimated from satellite images with a classical–quantum network",
     "hero.sub": "We test whether a quantum layer adds anything over a classical head of the same size.",
     "hero.demo": "Try the demo", "hero.code": "See the code",
@@ -64,7 +64,7 @@
     "sum.h2": "In 30 seconds",
     "sum.k1": "The problem", "sum.k2": "What we did", "sum.k3": "What we found", "sum.k4": "What comes next",
     "sum.v1": "Anticipating heavy rain in the lower and middle Piura valley with a couple of hours of lead time.",
-    "sum.v2": "A hybrid model (CNN + 4-qubit circuit) reads GOES-19 infrared images and estimates the risk in ~32 km patches.",
+    "sum.v2": "A hybrid model (CNN + 4-qubit circuit) reads GOES-East infrared images and estimates the risk in ~32 km patches.",
     "sum.v4": "Try real quantum hardware, with noise, and more rainy seasons.",
     "sum.criteria": "Where to look for each criterion",
     "sum.foundSyn": '<span class="tagnote">Synthetic</span>No real results here yet: this version shows synthetic test data and supports no conclusions.',
@@ -137,7 +137,7 @@
     "lab.psiS": "See the state vector (16 amplitudes)",
 
     "res.h2": "Results: classical vs quantum",
-    "res.lede": "Same CNN, two heads: a classical linear layer and the 4-qubit circuit. Test-set metrics below.",
+    "res.lede": "Same CNN with two heads (a classical linear layer or the 4-qubit circuit), plus a QSVM with a quantum kernel. Metrics come from the validation day: it was not used to fit weights, but it was used for early stopping and the threshold.",
     "res.cap": "Metrics of the two models",
     "res.metric": "Metric", "res.cls": "Classical", "res.hyb": "Hybrid",
     "res.curveLabel": "Curve", "res.curvePr": "Validation PR-AUC", "res.curveLoss": "Loss",
@@ -166,19 +166,19 @@
 
     "lim.h2": "Limits and next steps",
     "lim.nowT": "Today",
-    "lim.n1": "Runs on a noiseless simulator, not on quantum hardware.",
+    "lim.n1": "Runs on exact, noiseless simulators (Qiskit on CPU for training, our simulator in the browser), not on quantum hardware.",
     "lim.n2": "At most 400 samples: the simulated quantum layer is slow.",
     "lim.n3": "Results with real data are preliminary.",
-    "lim.n4": "Training and test are not yet split by day.",
+    "lim.n4": "The metrics on this site come from a single validation day, also used for early stopping and the threshold: they are optimistic. In per-day cross-validation, hybrid and classical tie.",
     "lim.n5": "We do not claim quantum advantage or operational use.",
     "lim.sim": "Simulator", "lim.sim2": "no noise", "lim.hw": "Real hardware", "lim.hw2": "Qiskit Runtime", "lim.noise": "noise appears", "lim.adj": "Model adjustments",
     "mod.s4": "12 weights", "mod.s6": "linear · 0 to 1",
-    "lim.p1": "seasons", "lim.p2": "by day", "lim.p3": "ansatz", "lim.p4": "qubits",
+    "lim.p1": "seasons", "lim.p2": "test", "lim.p3": "ansatz", "lim.p4": "qubits",
     "lim.cap": "Sketch of the path: from simulator to real hardware, and the model adjustments.",
     "lim.nextT": "Next steps",
-    "lim.x1": "Run on real hardware with Qiskit Runtime and measure the effect of noise.",
+    "lim.x1": "Inference on real hardware with Qiskit Runtime using the already trained weights (retraining there is not viable: each epoch needs thousands of circuits), going first through a noisy simulator (Qiskit Aer). For the QSVM, evaluate the kernel against the support vectors on hardware.",
     "lim.x2": "Add more rainy seasons.",
-    "lim.x3": "Split training and test by day.",
+    "lim.x3": "Hold out a test day independent of the day used for early stopping and the threshold.",
     "lim.x4": "Tune the ansatz and the number of qubits.",
 
     "rep.h2": "Reproduce the experiment", "rep.lede": "Three steps, in this order, from the repository's <code>pipeline/</code> folder.",
@@ -346,7 +346,7 @@
     });
     document.documentElement.lang = QP.lang;
     var title = en ? "Qu-arto de pollo · Heavy rain in Piura with a hybrid classical–quantum model" : meta.title;
-    var desc = en ? "Interactive demo: a hybrid model (CNN + 4-qubit quantum circuit) estimates heavy-rain risk in Piura two hours ahead from GOES-19 images. Simulator, preliminary results." : meta.desc;
+    var desc = en ? "Interactive demo: a hybrid model (CNN + 4-qubit quantum circuit) estimates heavy-rain risk in Piura two hours ahead from GOES-East images. Simulator, preliminary results." : meta.desc;
     document.title = title;
     var d = QP.$('meta[name="description"]'); if (d) d.setAttribute("content", desc);
     var ot = QP.$('meta[property="og:title"]'); if (ot) ot.setAttribute("content", title);

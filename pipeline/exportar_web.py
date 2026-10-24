@@ -177,11 +177,15 @@ def main():
     def metr_cnn(modelo, ck):
         yv = df.loc[en_val, "label"].values.astype(int)
         p = pr.predecir(modelo, ck, X[en_val])
-        return {"F1": round(float(f1_score(yv, p >= ck["umbral"], zero_division=0)), 3),
-                "PR_AUC": round(float(average_precision_score(yv, p)), 3),
-                "umbral": round(float(ck["umbral"]), 4),
-                "parametros": sum(q.numel() for q in modelo.parameters()),
-                "dia_validacion": dv}
+        m = {"F1": round(float(f1_score(yv, p >= ck["umbral"], zero_division=0)), 3),
+             "PR_AUC": round(float(average_precision_score(yv, p)), 3),
+             "umbral": round(float(ck["umbral"]), 4),
+             "parametros": sum(q.numel() for q in modelo.parameters()),
+             "dia_validacion": dv}
+        if "t_entreno_s" in ck:                       # .pt guardados con la version actual
+            m["t_entreno_s"] = round(float(ck["t_entreno_s"]), 1)
+            m["mejor_epoca"] = int(ck["mejor_epoca"])
+        return m
 
     yq = df.loc[en_val_q, "label"].values.astype(int)
     dq = qsvm.decision(F[en_val_q])
@@ -191,6 +195,19 @@ def main():
            "t_entreno_s": round(float(qsvm.m["metricas_validacion"]["t_entreno_s"]), 1),
            "dia_validacion": dv_q}
     m_c, m_h = metr_cnn(cla, ck_c), metr_cnn(hib, ck_h)
+
+    # ---- curvas por epoca (solo si los .pt las traen: cnn_hibrida.py --guardar actual)
+    curvas = {}
+    cc, chh = ck_c.get("curva"), ck_h.get("curva")
+    if cc and chh and len(cc["loss"]) == len(chh["loss"]):
+        curvas = {"epoca": list(range(1, len(cc["loss"]) + 1)),
+                  "prauc_val_clasico": [round(v, 4) for v in cc["prauc_val"]],
+                  "prauc_val_hibrido": [round(v, 4) for v in chh["prauc_val"]],
+                  "loss_clasico": [round(v, 4) for v in cc["loss"]],
+                  "loss_hibrido": [round(v, 4) for v in chh["loss"]]}
+    else:
+        print("AVISO: los .pt no traen curvas por epoca; regeneralos con "
+              "cnn_hibrida.py --guardar modelo para verlas en la web.")
 
     # ---- parches elegidos: referencia de PyTorch / Qiskit
     imgs = X[sel]
@@ -262,7 +279,7 @@ def main():
         "patches": patches,
         "metricas": {"clasico": m_c, "hibrido": m_h, "qsvm": m_q},
         "baseline_azar": round(float(df.loc[en_val, "label"].mean()), 3),
-        "curvas": {},
+        "curvas": curvas,
         "circuito": {
             "pesos_entrenados": [round(float(v), 10) for v in w_entr],
             "pesos_aleatorios": [round(float(v), 6) for v in w_aleat],

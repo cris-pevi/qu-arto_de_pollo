@@ -221,6 +221,7 @@ def entrenar(nombre, modelo, Xtr, ytr, Xva, yva, Xte, yte, verbose=True):
             return torch.sigmoid(modelo(torch.tensor(X))).numpy()
 
     mejor, mejor_ap, mejor_ep = None, -1, 0
+    curva = {"loss": [], "prauc_val": []}      # por epoca; --guardar la guarda en el .pt
     t0 = time.time()
     for ep in range(EPOCAS):
         modelo.train()
@@ -234,7 +235,9 @@ def entrenar(nombre, modelo, Xtr, ytr, Xva, yva, Xte, yte, verbose=True):
             opt.step()
             total += loss.item() * len(idx)
         ap = average_precision_score(yva, puntajes(Xva))
-        if ap > mejor_ap:                     # early stopping por PR-AUC en validacion
+        curva["loss"].append(total / len(Xtr_t))
+        curva["prauc_val"].append(float(ap))
+        if ap > mejor_ap:                    # early stopping por PR-AUC en validacion
             mejor_ap, mejor, mejor_ep = ap, copy.deepcopy(modelo.state_dict()), ep + 1
         if verbose:
             print(f"  [{nombre}] epoca {ep+1:2d}  loss={total/len(Xtr_t):.3f}  PR-AUC val={ap:.3f}")
@@ -255,6 +258,7 @@ def entrenar(nombre, modelo, Xtr, ytr, Xva, yva, Xte, yte, verbose=True):
         "mejor_epoca": mejor_ep,
         "parametros": sum(q.numel() for q in modelo.parameters()),
         "t_entreno_s": t,
+        "curva": curva,
     }
 
 
@@ -328,6 +332,7 @@ def guardar_modelos(X, y, t, modelos, ruta_base):
             "media": media, "desv": desv, "umbral": r["umbral"],
             "n_qubits": N_QUBITS, "dropout": DROPOUT,
             "dia_validacion": dv, "pr_auc_validacion": r["PR-AUC"],
+            "curva": r["curva"], "mejor_epoca": r["mejor_epoca"], "t_entreno_s": r["t_entreno_s"],
         }, ruta)
         print(f"  -> guardado {ruta}  (PR-AUC val={r['PR-AUC']:.3f}, umbral={r['umbral']:.3f})\n")
 
@@ -421,7 +426,7 @@ def main():
     for nombre, cls in modelos:
         fijar_semilla(SEED)
         resultados.append(entrenar(nombre, cls(), Xtr, ytr, Xva, yva, Xte, yte))
-    print("\n" + pd.DataFrame(resultados).round(3).to_string(index=False))
+    print("\n" + pd.DataFrame(resultados).drop(columns="curva").round(3).to_string(index=False))
     print(f"\nLinea base PR-AUC (azar) = {yte.mean():.3f}")
 
 
